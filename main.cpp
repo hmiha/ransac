@@ -31,7 +31,6 @@ int readDatasetFile(double x[100], double y[100], double x_[100], double y_[100]
     while ((ret = fscanf(fp, "%d %lf %lf %lf %lf", &id, &x[cnt], &y[cnt], &x_[cnt], &y_[cnt])) != EOF){
         cnt++;
     }
-
     return cnt;
 }
 
@@ -48,20 +47,26 @@ int main(int argc,char *argv[])
     //
 
     // definision
+    // Paras of Affine Trans.
     double a[100][100];
     double b[100][100];
     double c[100][100];
     double d[100][100];
 
+    // array which contains translation error
     double err[100][100][100];
 
+    // determinant of Affine mat.
     double det  = 0.;
+
+    // threshold
     double th   = 1.;
 
+    // num of outliers
     int counter[100][100];
 
-    // i1, i2 corresponding to index 1, 2
-
+    // i, j corresponding to index 1, 2
+    // execute RANSAC using all of pairs (e.g. 0and0, 0and1, 0and2, ... ,99and99)
     for(int i=0; i<100; i++){
         for(int j=0; j<100; j++){
 
@@ -74,9 +79,11 @@ int main(int argc,char *argv[])
             c[i][j] = (+ y_[i] * y[j] - y[i] * y_[j]) / det;
             d[i][j] = (- y_[i] * x[j] + x[i] * y_[j]) / det;
 
+            // compute error using solved affine mat in id=k point.
             for(int k=0; k<100; k++){
                 err[i][j][k] = sqrt(pow((x_[k] - (a[i][j] * x[k] + b[i][j] * y[k])), 2) + pow((y_[k] - (c[i][j] * x[k] + d[i][j] * y[k])), 2));
 
+                // count num of error over the threshold
                 if (err[i][j][k] > th){
                     counter[i][j]++;
                 }
@@ -84,15 +91,19 @@ int main(int argc,char *argv[])
         }
     }
 
+    // contain suitable pair using in Ransac
     int i_m, j_m;
+
     double tmp = 100000000.0;
+
+    // find suitable pair
     for(int i=0; i<100; i++){
         for(int j=0; j<100; j++){
             double sum = 0;
-
             for(int k=0; k<100; k++){
                 sum += err[i][j][k];
             }
+            // tmp contains minimum sum_k(err[i][j][k]) and i_m, j_m contains i, j in minimum sum_k(err[i][j][k])
             if(sum < tmp){
                 tmp = sum;
                 i_m = i;
@@ -100,6 +111,7 @@ int main(int argc,char *argv[])
             }
         }
     }
+    // display all results
     printf("Most suitable pair of points used in RANSAC:\n > (%d, %d) \n", i_m, j_m);
     printf("IDs of outliers: \n > ");
     int cnt = 0;
